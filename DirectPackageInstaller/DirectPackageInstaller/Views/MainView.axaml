@@ -34,9 +34,9 @@
                         <CheckBox BorderThickness="0" IsChecked="{Binding SegmentedMode, Mode=TwoWay}"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Transfer Progress" Name="btnTransferProgress" >
+                <MenuItem Header="_Delete PKG after transfer" Name="btnDeletePkg">
                     <MenuItem.Icon>
-                        <CheckBox BorderThickness="0" IsChecked="{Binding ShowTransferProgress, Mode=TwoWay}"/>
+                        <CheckBox BorderThickness="0" IsChecked="{Binding DeletePkgAfterTransfer, Mode=TwoWay}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="_CNL Support" Name="btnCNLService" >
