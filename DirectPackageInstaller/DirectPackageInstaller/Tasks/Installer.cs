@@ -99,6 +99,7 @@ namespace DirectPackageInstaller.Tasks
                 return false;
 
             bool CanSplit = true;
+            string? LocalFile = InputType.HasFlag(Source.File) ? URL : null;
 
             uint LastResource = CurrentPKG.PreloadLength;
 
@@ -203,7 +204,7 @@ namespace DirectPackageInstaller.Tasks
 
             bool OK;
             if (await IPHelper.IsRPIOnline(Config.PSIP))
-                OK = await PushRPI(URL, Config, Silent);
+                OK = await PushRPI(URL, Config, Silent, LocalFile);
             else if (await IPHelper.IsEtaHenOnline(Config.PSIP))
                 OK = await PushEtaHen(URL, Config, Silent);
             else
@@ -286,7 +287,7 @@ namespace DirectPackageInstaller.Tasks
         #endregion
 
         #region RemotePackageInstaller
-        public static async Task<bool> PushRPI(string URL, Settings Config, bool Silent)
+        public static async Task<bool> PushRPI(string URL, Settings Config, bool Silent, string? LocalFile = null)
         {
             try
             {
@@ -308,6 +309,13 @@ namespace DirectPackageInstaller.Tasks
 
                 if (Result.Contains("\"success\""))
                 {
+                    if (Config.DeletePkgAfterTransfer && LocalFile != null)
+                    {
+                        var IdMatch = System.Text.RegularExpressions.Regex.Match(Result, "\"task_id\"\\s*:\\s*(\\d+)");
+                        if (IdMatch.Success)
+                            PkgCleanup.Watch(Config.PSIP, int.Parse(IdMatch.Groups[1].Value), LocalFile);
+                    }
+
                     if (!Silent)
                         await MessageBox.ShowAsync("Package Sent!", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
