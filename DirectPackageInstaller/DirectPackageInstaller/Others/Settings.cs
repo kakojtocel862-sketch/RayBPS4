@@ -31,8 +31,9 @@ namespace DirectPackageInstaller
         public bool EnableCNL;
 
         public bool ShowError;
-        public bool ShowTransferProgress;
 
         public bool AutoSplitPKG;
+
+        public bool DeletePkgAfterTransfer;
     }
 }
