@@ -62,6 +62,13 @@ namespace DirectPackageInstaller.ViewModels
             set => this.RaiseAndSetIfChanged(ref _debridLinkApiKey, value);
         }
 
+        private bool _DeletePkgAfterTransfer = false;
+        public bool DeletePkgAfterTransfer
+        {
+            get => _DeletePkgAfterTransfer;
+            set => this.RaiseAndSetIfChanged(ref _DeletePkgAfterTransfer, value);
+        }
+
         private bool _ProxyMode = false;
         public bool ProxyMode 
         {
@@ -74,13 +81,6 @@ namespace DirectPackageInstaller.ViewModels
         {
             get => _SegmentedMode;
             set => this.RaiseAndSetIfChanged(ref _SegmentedMode, value);
-        }
-
-        private bool _ShowTransferProgress = true;
-        public bool ShowTransferProgress
-        {
-            get => _ShowTransferProgress;
-            set => this.RaiseAndSetIfChanged(ref _ShowTransferProgress, value);
         }
         
         private bool _useAllDebrid = false;
