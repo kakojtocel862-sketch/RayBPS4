@@ -56,8 +56,6 @@ namespace DirectPackageInstaller.Views
 
         private DecompressorHelperStream[]? CurrentDecompressorVolumes = null;
 
-        private DateTime LastTransferProgressUpdate = DateTime.MinValue;
-
         public MainViewModel? Model => (MainViewModel?)DataContext;
         
         public MainView()
@@ -83,8 +81,8 @@ namespace DirectPackageInstaller.Views
             btnRealDebirdEnabled = this.Find<MenuItem>("btnRealDebirdEnabled");
             btnDebirdLinkEnabled = this.Find<MenuItem>("btnDebirdLinkEnabled");
             btnSegmentedDownload = this.Find<MenuItem>("btnSegmentedDownload");
-            btnTransferProgress = this.Find<MenuItem>("btnTransferProgress");
             btnCNLService = this.Find<MenuItem>("btnCNLService");
+            btnDeletePkg = this.Find<MenuItem>("btnDeletePkg");
             btnDHCPService = this.Find<MenuItem>("btnDHCPService");
             btnExit = this.Find<MenuItem>("btnExit");
             btnLoad = this.Find<Button>("btnLoad");
@@ -96,8 +94,8 @@ namespace DirectPackageInstaller.Views
             btnRealDebirdEnabled.Click += BtnRealDebirdEnabledOnClick;
             btnDebirdLinkEnabled.Click += BtnDebirdLinkEnabledOnClick;
             btnSegmentedDownload.Click += BtnSegmentedDownloadOnClick;
-            btnTransferProgress.Click += BtnTransferProgressOnClick;
             btnCNLService.Click += BtnCNLServiceOnClick;
+            btnDeletePkg.Click += BtnDeletePkgOnClick;
             btnDHCPService.Click += BtnDHCPServiceOnClick;
 
             btnLoad.Click += BtnLoadOnClick;
@@ -108,7 +106,6 @@ namespace DirectPackageInstaller.Views
             btnExit.IsVisible = App.IsAndroid;
             
             CNL.OnLinksReceived = OnLinksReceived;
-            PS4Server.GlobalTransferProgressChanged += ServerOnTransferProgressChanged;
             
             PreviewGrid.PropertyChanged += PreviewGridOnPropertyChanged;
 
@@ -150,10 +147,9 @@ namespace DirectPackageInstaller.Views
                 App.Config.DebridLinkApiKey = IniReader.GetValue("DebridLinkApiKey");
                 App.Config.EnableCNL = IniReader.GetBooleanValue("EnableCNL");
                 App.Config.ShowError = IniReader.GetBooleanValue("ShowError");
-                var ShowTransferProgress = IniReader.GetValue("ShowTransferProgress");
-                App.Config.ShowTransferProgress = string.IsNullOrWhiteSpace(ShowTransferProgress) || IniReader.GetBooleanValue("ShowTransferProgress");
                 App.Config.SkipUpdateCheck = IniReader.GetBooleanValue("SkipUpdateCheck");
                 App.Config.AutoSplitPKG = IniReader.GetBooleanValue("AutoSplitPKG");
+                App.Config.DeletePkgAfterTransfer = IniReader.GetBooleanValue("DeletePkgAfterTransfer");
 
                 App.Config.PayloadPort = IniReader.GetIntValue("PayloadPort");
                 
@@ -180,7 +176,6 @@ namespace DirectPackageInstaller.Views
                     UseAllDebrid = false,
                     EnableCNL = true,
                     ShowError = false,
-                    ShowTransferProgress = true,
                     SkipUpdateCheck = false,
                     EnableDHCP = false,
                     AllDebridApiKey = null,
@@ -203,7 +198,7 @@ namespace DirectPackageInstaller.Views
             Model.DHCPService = App.Config.EnableDHCP;
             Model.CNLService = App.Config.EnableCNL;
             Model.ProxyMode = App.Config.ProxyDownload;
-            Model.ShowTransferProgress = App.Config.ShowTransferProgress;
+            Model.DeletePkgAfterTransfer = App.Config.DeletePkgAfterTransfer;
             Model.UseAllDebrid = App.Config.UseAllDebrid;
             Model.UseDebridLink = App.Config.UseDebridLink;
             Model.SegmentedMode = App.Config.SegmentedDownload;
@@ -816,11 +811,11 @@ namespace DirectPackageInstaller.Views
                 case "ProxyMode":
                     App.Config.ProxyDownload = Model.ProxyMode;
                     break;
+                case "DeletePkgAfterTransfer":
+                    App.Config.DeletePkgAfterTransfer = Model.DeletePkgAfterTransfer;
+                    break;
                 case "SegmentedMode":
                     App.Config.SegmentedDownload = Model.SegmentedMode;
-                    break;
-                case "ShowTransferProgress":
-                    App.Config.ShowTransferProgress = Model.ShowTransferProgress;
                     break;
                 case "PS4IP":
                     App.Config.PSIP = Model.PS4IP;
@@ -895,12 +890,12 @@ namespace DirectPackageInstaller.Views
             Model.SegmentedMode = !Model.SegmentedMode;
         }
 
-        private void BtnTransferProgressOnClick(object? sender, RoutedEventArgs e)
+        private void BtnDeletePkgOnClick(object? sender, RoutedEventArgs e)
         {
             if (Model == null)
                 return;
 
-            Model.ShowTransferProgress = !Model.ShowTransferProgress;
+            Model.DeletePkgAfterTransfer = !Model.DeletePkgAfterTransfer;
         }
 
         private void BtnProxyDownloadOnClick(object? sender, RoutedEventArgs e)
@@ -1289,37 +1284,6 @@ namespace DirectPackageInstaller.Views
             {
                 App.Callback(() => this.Status.Text = Status);
             }
-        }
-
-        private void ServerOnTransferProgressChanged(TransferProgressInfo Info)
-        {
-            if (!App.Config.ShowTransferProgress)
-                return;
-
-            var Now = DateTime.Now;
-            if (!Info.Completed && (Now - LastTransferProgressUpdate).TotalMilliseconds < 500)
-                return;
-
-            LastTransferProgressUpdate = Now;
-            var ProgressStatus = FormatTransferProgress(Info);
-
-            App.Callback(() =>
-            {
-                if (App.Config.ShowTransferProgress)
-                    Status.Text = ProgressStatus;
-            });
-        }
-
-        private static string FormatTransferProgress(TransferProgressInfo Info)
-        {
-            var Sent = TransferProgressInfo.FormatBytes(Info.BytesSent);
-            var Total = TransferProgressInfo.FormatBytes(Info.TotalBytes);
-
-            if (Info.Completed)
-                return $"Sent {Sent} / {Total}";
-
-            var Speed = TransferProgressInfo.FormatBytes(Info.BytesPerSecond);
-            return $"Sending {Sent} / {Total} ({Info.Percent:P1}) - {Speed}/s";
         }
         
         private async void RestartServer_OnClick(object? sender, RoutedEventArgs? e)
