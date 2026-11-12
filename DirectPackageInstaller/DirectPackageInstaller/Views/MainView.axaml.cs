@@ -504,7 +504,7 @@ namespace DirectPackageInstaller.Views
                             new()
                             {
                                 Name = "ALL PKG Files",
-                                Extensions = new List<string>() {"pkg", "PKG", "json", "JSON"},
+                                Extensions = new List<string>() {"pkg", "PKG", "json", "JSON", "torrent", "TORRENT"},
                             },
                             new()
                             {
@@ -569,6 +569,13 @@ namespace DirectPackageInstaller.Views
             }
 
             InputType = Source.NONE;
+
+            //Magnet links and .torrent files are downloaded first, then loaded as local files
+            if (TorrentFetcher.IsTorrentSource(SourcePackage))
+            {
+                await LoadFromTorrent(SourcePackage);
+                return;
+            }
 
             if (!SourcePackage.IsValidURL() && !File.Exists(SourcePackage)) {
                 await MessageBox.ShowAsync(Parent, "Invalid URL or File Path", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -723,6 +730,53 @@ namespace DirectPackageInstaller.Views
             }
 
             PKGStream?.Close();
+        }
+
+        private async Task LoadFromTorrent(string Source)
+        {
+            try
+            {
+                tbURL.IsEnabled = false;
+                btnLoad.IsEnabled = false;
+                await App.DoEvents();
+
+                var Files = await TorrentFetcher.DownloadPackages(Source, async (s) => await SetStatus(s));
+
+                if (Files.Length == 0)
+                    throw new AbortException("No .pkg files found in the torrent");
+
+                BatchList.Clear();
+                if (Files.Length > 1)
+                    BatchList.AddRange(Files.Select(x => (x, Path.GetFileName(x))));
+
+                ListEntries(Files);
+
+                tbURL.IsEnabled = true;
+                btnLoad.IsEnabled = true;
+
+                await SetStatus("Torrent finished");
+
+                App.Callback(() => {
+                    Model.CurrentURL = Files.First();
+                    App.Callback(() => BtnLoadOnClick(null, new RoutedEventArgs()));
+                });
+            }
+            catch (Exception ex)
+            {
+                await File.WriteAllTextAsync(Path.Combine(App.WorkingDirectory, "DPI-ERROR.log"), ex.ToString());
+
+                if (ex is AbortException)
+                    await MessageBox.ShowAsync(ex.Message, "DirectPackageInstaller - Torrent", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else
+                    await MessageBox.ShowAsync(ex.ToString(), "DirectPackageInstaller - Torrent", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                await SetStatus("Torrent failed");
+            }
+            finally
+            {
+                tbURL.IsEnabled = true;
+                btnLoad.IsEnabled = true;
+            }
         }
 
         private async Task<FileHostStream?> LoadUrl(string SourcePackage)
