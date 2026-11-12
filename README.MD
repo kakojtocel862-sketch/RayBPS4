@@ -1,268 +1,95 @@
-# DirectPackageInstaller
+# RayBPS4
 
-A tool to preview and send PKG files to your PS4 or PS5 using direct download links.  
-This tool supports three different methods for sending PKGs:
+[English](#english) | [Русский](#русский)
 
--   Remote Package Installer Homebrew
--   GoldHEN Payload Server    
--   etaHEN DPIv2 API
-    
+---
 
-Features
-----------
+## English
 
--   Preview PKG files
--   Standalone PS4 package downloads
--   PS5 etaHEN support
--   Automatic proxying to speed up PS4 downloads
--   Support for RAR/7z compressed files
--   Resumable downloads (only for uncompressed files)
--   Segmented downloads
--   Support for several file hosting services
--   Support for PSN update manifests (split PKGs)
--   Works with or without Remote Package Installer
--   Command Line Interface (CLI)
--   JDownloader Click'n Load support
--   Auto LAN Cable Connection (Windows Only)
--   Can Install PKGs from NFS source
-    
+**RayBPS4** is a fork of [DirectPackageInstaller](https://github.com/marcussacana/DirectPackageInstaller) (original author: marcussacana, GPL-3.0) with two extra features: **automatic deletion of the `.pkg` after it is sent to the PS4** and **torrent downloading (magnet link or `.torrent`)**.
 
-Supported File Hosting Services
-----------
+> Both new features are experimental. The code was written without the ability to run it on a real console, so please test it on your own device.
 
--   Any direct link (without authentication)
--   AllDebrid ([API key required](https://alldebrid.com/apikeys/))
--   RealDebrid ([API key required](https://real-debrid.com/apitoken))
--   DebridLink ([API key required](https://debrid-link.com/webapp/apikey))
--   Google Drive
--   Mediafire
--   PixelDrain
--   1Fichier (must wait 60 minutes after each download)
-    
-
-How to Install
-----------
+### What the app does
 
-1.  Download a build compatible with your platform (see below).
-2.  On Windows, Linux, and Android, install the [.NET 8 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime) first.
-    macOS builds are self-contained and do not require a separate .NET install.
-    
-Downloads:
-----------
-
-<details> <summary>Windows</summary>
-
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-X64.zip)    
--   [x86](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-X86.zip)    
-
-</details> <details> <summary>Android</summary>
+**From the original project**
+- Sends a `.pkg` to a PS4 from a PC or phone using a direct link or a local file, without manually downloading it on the console first.
+- Works through a receiver on the console: **Remote Package Installer** or **GoldHEN Payload Server**.
+- Accepts links through the services configured on the **Debrids** tab (AllDebrid, RealDebrid, DebridLink), as well as direct links and Google Drive.
+- Platforms: Windows, Linux, macOS, Android.
 
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-X64.zip)    
--   [x86](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-X86.zip)    
+**Added in this fork**
 
-</details> <details> <summary>Linux</summary>
+1. **Delete PKG after transfer** (Options menu)
+   - After a file is sent through Remote Package Installer, the app polls the task status on the console every 5 seconds (`/api/get_task_progress`).
+   - When the PS4 has fully downloaded the file and reported no error, the local `.pkg` is deleted.
+   - Only local `.pkg` files sent from the "file" tab are deleted. Internet links and the cache are never touched.
+   - If the task fails, the console stops responding, or 24 hours pass, the file is kept.
+   - Actions are written to `DPI-CLEANUP.log` next to the settings.
+   - Does not work with GoldHEN Payload Server or etaHEN, because they have no task status.
+   - Deletion happens when the console has **finished downloading**, not necessarily when the game is fully installed.
 
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-X64.zip)    
+2. **Torrents: magnet link, `.torrent`, or a URL to a `.torrent`**
+   - Paste a magnet link or a `.torrent` path into the link field (or pick the file with Open, or drag it into the window on desktop) and press **Load**.
+   - Only `.pkg` files from the torrent are downloaded; everything else is skipped. The status shows percent, speed and peer count.
+   - If the torrent contains several `.pkg` files, they appear in the **Packages** menu.
+   - After the download, the file opens like any local file and the usual flow continues (including auto-delete).
+   - Files are stored in the `Torrents` folder next to the settings.
+   - Uses the [MonoTorrent](https://github.com/alanmcgovern/monotorrent) library, version 3.0.2 (MIT license).
 
-</details> <details> <summary>macOS</summary>
+### Limitations
+- The whole `.pkg` is downloaded to the device before it is loaded into the app, so free disk space is required.
+- With auto-delete enabled, the torrent stops seeding.
+- The Android build is not fully verified: there may be startup problems, and the cause is under investigation. Crash logs: `DPI-CRASH.log` and `DPI-AndroidCrash.log` in the app's data folder.
 
-**CLI builds:**
+### Usage and legality
+The app is intended for installing packages you are entitled to use (your own builds, homebrew, backups of games you own). The user is responsible for the content they use.
 
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64.zip)    
+### License and credits
+GPL-3.0, same as the original. Upstream project: marcussacana/DirectPackageInstaller. Console receiver: Remote Package Installer (flatz) and its OpenOrbis SDK port.
 
-**App builds (zip):**
+---
 
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64-APP.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64-APP.zip)   
+## Русский
 
-**App builds (DMG, drag-to-Applications):**
+**RayBPS4** это форк [DirectPackageInstaller](https://github.com/marcussacana/DirectPackageInstaller) (автор оригинала: marcussacana, лицензия GPL-3.0) с двумя дополнительными функциями: **автоудаление `.pkg` после передачи на PS4** и **загрузка через торрент (magnet-ссылка или `.torrent`)**.
 
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64-APP.dmg)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64-APP.dmg)
+> Обе новые функции экспериментальные. Код написан без возможности запуска на реальной консоли, поэтому проверяйте их на своём устройстве.
 
-macOS builds are self-contained (.NET 8 runtime bundled) and the .app is ad-hoc signed so it launches on Apple Silicon without further steps. If Gatekeeper still blocks the app after extracting the zip, run:
+### Что умеет программа
 
-```
-xattr -dr com.apple.quarantine /Applications/DirectPackageInstaller.app
-```
+**Из оригинала**
+- Отправляет `.pkg` на PS4 с компьютера или телефона по прямой ссылке или из локального файла, не скачивая его заранее на консоль вручную.
+- Работает через приёмник на консоли: **Remote Package Installer** или **GoldHEN Payload Server**.
+- Принимает ссылки через сервисы, настраиваемые на вкладке **Debrids** (AllDebrid, RealDebrid, DebridLink), а также прямые ссылки и Google Drive.
+- Платформы: Windows, Linux, macOS, Android.
 
-</details>
+**Добавлено в этом форке**
 
+1. **Delete PKG after transfer** (меню Options)
+   - После отправки файла через Remote Package Installer программа раз в 5 секунд опрашивает статус задачи на консоли (`/api/get_task_progress`).
+   - Когда PS4 полностью скачала файл и ошибок нет, локальный `.pkg` удаляется.
+   - Удаляются только локальные файлы `.pkg`, отправленные из вкладки «файл». Ссылки из интернета и кэш не затрагиваются.
+   - Если задача завершилась ошибкой, консоль не отвечает или прошло 24 часа, файл остаётся.
+   - Действия записываются в `DPI-CLEANUP.log` рядом с настройками.
+   - Не работает с GoldHEN Payload Server и etaHEN: у них нет статуса задачи.
+   - Удаление срабатывает, когда консоль **закончила скачивание**, а не обязательно когда игра полностью установилась.
 
-How to Use
-----------
+2. **Торренты: magnet-ссылка, `.torrent` или ссылка на `.torrent`**
+   - Вставьте magnet или путь к `.torrent` в поле ссылки (или выберите файл через Open, или перетащите его в окно на ПК) и нажмите **Load**.
+   - Из раздачи скачиваются только файлы `.pkg`, остальное пропускается. Статус показывает проценты, скорость и число пиров.
+   - Если в раздаче несколько `.pkg`, они появляются в меню **Packages**.
+   - После скачивания файл открывается как обычный локальный, дальше всё как обычно (в том числе автоудаление).
+   - Файлы хранятся в папке `Torrents` рядом с настройками.
+   - Используется библиотека [MonoTorrent](https://github.com/alanmcgovern/monotorrent) 3.0.2 (лицензия MIT).
 
-#### Direct Download Mode
+### Ограничения
+- Весь `.pkg` скачивается на устройство целиком до загрузки в программу, поэтому нужно свободное место.
+- При включённом автоудалении торрент перестаёт раздаваться.
+- Android-сборка проверена не полностью: возможны проблемы при запуске, причина выясняется. Журналы падений: `DPI-CRASH.log` и `DPI-AndroidCrash.log` в папке данных приложения.
 
-1.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-2.  Open DirectPackageInstaller.    
-3.  Paste a direct PKG URL into the "PKG URL" field.    
-4.  Click "Load" and wait.    
-5.  Click "Install" and wait again.    
-6.  Done! You can close the application or shut down your PC.    
+### Использование и законность
+Программа предназначена для установки пакетов, которыми вы вправе пользоваться (своих сборок, homebrew, резервных копий собственных игр). Ответственность за используемый контент лежит на пользователе.
 
-#### Proxied Download Mode (for PS4s without internet access)
-
-1.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-2.  Open DirectPackageInstaller.    
-3.  Go to `Options -> Proxy Downloads` and enable it.    
-4.  Paste a direct PKG URL.    
-5.  Click "Load", then "Install".    
-6.  Wait for the installation to finish.
-    
-
-#### Segmented Download Mode (fastest)
-
-1.  Make sure you have enough free disk space.
-2.  Launch Remote Package Installer or enable GoldHEN Payload Server.
-3.  Open DirectPackageInstaller.
-4.  Go to `Options -> Segmented Downloads` and enable it.
-5.  Paste a direct PKG URL.
-6.  Click "Load", then "Install".
-7.  The PKG will be downloaded and preloaded before installation.
-
-> Note: In segmented mode, the PS4 cannot track download progress accurately.
-
-#### Compressed File Mode (always proxied)
-1.  Make sure you have enough free disk space.    
-2.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-3.  Paste the direct URL to your compressed file.    
-4.  Click "Load" and wait.    
-5.  [Optional] Select the desired PKG from the file list.    
-6.  Click "Install" and wait.
-
-macOS CLI Usage
-----------
-
-Use the terminal to run the app:
-```
-./DirectPackageInstaller.Desktop
-```
-In some cases, you may need to run:
-```
-dotnet DirectPackageInstaller.Desktop.dll
-```
-
-NFS PKG Source
-----------
-
-To use an NFS server as a source for DPI, you just need to provide a URL in a format supported by DPI.
-There are two supported NFS URL formats:
-
-- `nfs://YOUR_NFS_IP_OR_HOSTNAME/ExportedPath/FilePath/FileName.pkg`
-
-- `nfs://YOUR_NFS_IP_OR_HOSTNAME/FilePath/FileName.pkg`
-
-In the first format, the path starts with the exact exported directory (as configured in the NFS server's /etc/exports).
-DPI will mount that specific export and look for the file within it.
-
-In the second format, no specific export path is provided. In this case, DPI will attempt to search across all available exports on the NFS server to locate the requested file.
-Note that this may slow down the initial access if your server has many exports.
-
-PS: The DPI is incompatible with the winnfsd due this bug [#88](https://github.com/winnfsd/winnfsd/issues/88), for windows, you can use [haneWIN NFS Server](https://www.hanewin.net/nfs-e.htm) instead.
-
-
-How It Works
-----------
-DirectPackageInstaller is a simple tool that uses the Remote Package Installer's API to add PKG downloads directly to your PS4 or PS5. It helps you preview and send packages easily.
-
-Additionally, the tool features an automatic proxy server to accelerate downloads. Since the PS4 has much better speeds over LAN than WAN, proxying through your PC can significantly improve performance.
-
-It also works without the Remote Package Installer if you enable the binloader — the tool will automatically decide which method to use.
-
-When using compressed files (RAR/7z), everything happens in parallel: download, extraction, and upload to your console. This saves time and disk space compared to traditional methods.
-
-Segmented mode downloads PKGs in parallel threads to your PC, while sending them to the console. It's the fastest option, though it won't show progress on the PS4 screen.
-
-
-Command Line Interface (CLI)
-----------
-
-An experimental CLI is available.
-
-Note: RAR/7z and segmented downloads are not supported in CLI mode (yet).  
-To view available options:
-
--   On Windows: `DirectPackageInstaller.Desktop.exe -help`    
--   On other systems: `DirectPackageInstaller.Desktop -help`
-    
-
-
-
-Dependencies
-----------
-Windows, Linux, and Android builds require the [.NET 8.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime).
-macOS builds are self-contained and ship with the runtime bundled.
-
-
-How to Build
-----------
-
-1.  Install the .NET 8.x SDK.    
-2.  Run the `Build.cmd` script (works on both Windows and Unix-like systems).    
-3.  A `Release` directory with the compiled binaries will be created.    
-
-For custom payloads, run `make` in the payload directory and replace the generated `payload.bin` inside `DirectPackageInstaller/DirectPackageInstaller/payload`.
-
-Android builds:
-----------
--   Targets API level 26    
--   Install Android SDK and NDK    
--   Accept SDK licenses    
--   Edit `Build.cmd` to set SDK/NDK paths    
--   Run `Build.cmd` as admin (first time only)
-
-Alternatively, fork the project and use GitHub Actions for builds.
-
-Q&A
-----------
-
-**My download is taking too long to start**  
-You're probably downloading a multipart compressed file. The more volumes, the longer it takes to scan and validate. This isn’t a bug — just how compressed file access works. Please be patient.
-
-**Download speed is slow, even in segmented mode**  
-Segmented mode doesn't report accurate progress to the PS4. Use your PC's Task Manager to monitor real network usage.
-
-**Segmented mode and only 2 Mbps?!**  
-Some hosting sites (e.g., Zippyshare) are just slow. Try testing with Google Drive for better performance.
-
-**Recommended file hostings?**
-
--   AllDebrid / RealDebrid    
--   Google Drive    
--   Mediafire
--   Everything else
--   1Fichier (slowest)
-    
-
-**I got an error during installation**  
-Open an issue! Seriously, don’t worry — mistakes happen. If there's a crash, check the `DPI-Crash.log` for details.
-
-Disclaimer
-----------
-
-This tool is for legitimate purposes only. It’s intended to help users install their personal backups. Piracy is not supported.  
-You are responsible for how you use this software.
-
-Warnings
-----------
-
--   Avoid multiple parallel decompressions — process one file at a time.
--   Compressed file downloads create a temporary PKG cache, requiring free disk space equal to the final PKG size.
-
-Credits
-----------
-
--   **LibOrbisPkg** by _maxton_
--   **HttpServerLite** by _jchristn_
--   Payload template by _sleirsgoevy_
--   PS4 OS internals help by _LM_
--   PS4 export definitions by _OpenOrbis SDK_
--   **DirectPackageInstaller** by _marcussacana_
+### Лицензия и благодарности
+GPL-3.0, как и оригинал. Исходный проект: marcussacana/DirectPackageInstaller. Консольный приёмник: Remote Package Installer (flatz) и его порт на OpenOrbis SDK.
