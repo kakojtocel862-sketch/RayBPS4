@@ -9,7 +9,8 @@ namespace DirectPackageInstaller.Tasks
 {
     /// <summary>
     /// Watches a Remote Package Installer task on the PS4 and deletes the
-    /// local .pkg file once the console has finished downloading it.
+    /// local .pkg file once the console has finished downloading it and
+    /// its post-download preparing stage has ended (or stopped changing).
     /// Only local files sent through the "file" source are ever touched.
     /// </summary>
     public static class PkgCleanup
@@ -17,6 +18,12 @@ namespace DirectPackageInstaller.Tasks
         private static readonly Regex LengthTotal = new Regex("\"length_total\"\\s*:\\s*0x([0-9A-Fa-f]+)", RegexOptions.Compiled);
         private static readonly Regex Transferred = new Regex("\"transferred_total\"\\s*:\\s*0x([0-9A-Fa-f]+)", RegexOptions.Compiled);
         private static readonly Regex ErrorCode = new Regex("\"error\"\\s*:\\s*(-?\\d+)", RegexOptions.Compiled);
+        private static readonly Regex PreparingPercent = new Regex("\"preparing_percent\"\\s*:\\s*(-?\\d+)", RegexOptions.Compiled);
+        private static readonly Regex LocalCopyPercent = new Regex("\"local_copy_percent\"\\s*:\\s*(-?\\d+)", RegexOptions.Compiled);
+
+        //After the download ends, wait this long without any change in the
+        //post-download progress values before deleting the file anyway.
+        private static readonly TimeSpan SettleTime = TimeSpan.FromSeconds(60);
 
         public static void Watch(string psIp, int taskId, string localFile)
         {
@@ -36,6 +43,9 @@ namespace DirectPackageInstaller.Tasks
             var body = $"{{\"task_id\":{taskId}}}";
 
             int failures = 0;
+            bool DownloadFinished = false;
+            DateTime LastChange = DateTime.UtcNow;
+            (int, int) LastState = (-2, -2);
             var deadline = DateTime.UtcNow.AddHours(24);
 
             while (DateTime.UtcNow < deadline)
@@ -77,12 +87,35 @@ namespace DirectPackageInstaller.Tasks
 
                     if (totalBytes > 0 && doneBytes >= totalBytes)
                     {
-                        if (File.Exists(localFile))
+                        int preparing = ReadInt(PreparingPercent, text);
+                        int localCopy = ReadInt(LocalCopyPercent, text);
+
+                        if (!DownloadFinished)
                         {
-                            File.Delete(localFile);
-                            Log($"Deleted {localFile} (task {taskId} finished downloading).");
+                            DownloadFinished = true;
+                            LastChange = DateTime.UtcNow;
+                            LastState = (preparing, localCopy);
+                            Log($"Task {taskId}: download finished, waiting for the PS4 to finish preparing (preparing={preparing}%, local_copy={localCopy}%).");
                         }
-                        return;
+                        else if ((preparing, localCopy) != LastState)
+                        {
+                            LastState = (preparing, localCopy);
+                            LastChange = DateTime.UtcNow;
+                            Log($"Task {taskId}: preparing={preparing}%, local_copy={localCopy}%.");
+                        }
+
+                        bool PrepareDone = preparing >= 100;
+                        bool Settled = DateTime.UtcNow - LastChange >= SettleTime;
+
+                        if (PrepareDone || Settled)
+                        {
+                            if (File.Exists(localFile))
+                            {
+                                File.Delete(localFile);
+                                Log($"Deleted {localFile} (task {taskId}: {(PrepareDone ? "preparing reached 100%" : "no changes for " + (int)SettleTime.TotalSeconds + "s after the download")}).");
+                            }
+                            return;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -94,6 +127,12 @@ namespace DirectPackageInstaller.Tasks
                     }
                 }
             }
+        }
+
+        private static int ReadInt(Regex Pattern, string Text)
+        {
+            var m = Pattern.Match(Text);
+            return m.Success && int.TryParse(m.Groups[1].Value, out int v) ? v : -1;
         }
 
         private static void Log(string message)
